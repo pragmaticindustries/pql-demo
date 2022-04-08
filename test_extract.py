@@ -11,6 +11,20 @@ config: dict = {
     }
 }
 
+
+def run_processor(states):
+    """
+    Helper Function
+    :param states:
+    :return:
+    """
+    processor = StateProcessor(config, states[0])
+    for state in states:
+        processor.process_state(state, state == states[-1])
+    results = processor.get_result()
+    return results
+
+
 def test_one():
     states = [
         {"timestamp": 1, "cycle_id": 21, "material_name": "Material 1"},
@@ -19,11 +33,7 @@ def test_one():
         {"timestamp": 4, "cycle_id": 22, "material_name": "Material 1"},
     ]
 
-    processor = StateProcessor(config, states[0])
-    for state in states:
-        processor.process_state(state, state == states[-1])
-
-    results = processor.get_result()
+    results = run_processor(states)
 
     assert len(results.get("Cycle")) == 2
     assert len(results.get("MaterialEquipped")) == 1
