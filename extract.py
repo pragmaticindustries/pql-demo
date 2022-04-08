@@ -209,7 +209,7 @@ class StateProcessor(object):
             self.end_result.update({f"{entity}": []})
 
     def process_state(self, state, is_last=False):
-        for entity in config.keys():
+        for entity in self.config.keys():
             current_context = {k: v.apply(state) for k, v in self.config.get(entity).items() if
                                not v.is_generated() and not v.is_foreignkey()}
             if not is_last:
@@ -226,7 +226,7 @@ class StateProcessor(object):
                 self.process_foreingkeys(entity)
 
     def process_foreingkeys(self, state):
-        for entity in config.keys():
+        for entity in self.config.keys():
             {k: v.apply(entity,state,self.end_result) for k, v in self.config.get(entity).items() if v.is_generated() and v.is_foreignkey()}
 
     def get_result(self):
