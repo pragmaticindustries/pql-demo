@@ -68,27 +68,4 @@ def test_two():
     assert results.get("Cycle")[0].get("material_equipped") == 1
     assert results.get("Cycle")[1].get("material_equipped") == 1
 
-def test_three():
-
-    states = [
-        {"timestamp": 1, "cycle_id": 21, "material_name": "Material 1"},
-        {"timestamp": 2, "cycle_id": 21, "material_name": "Material 1"},
-        {"timestamp": 3, "cycle_id": 22, "material_name": "Material 1"},
-        {"timestamp": 4, "cycle_id": 22, "material_name": "Material 1"},
-    ]
-
-    processor = StateProcessor(config,states[0])
-    processor.reset_foreignkeys_and_constraints()
-    for state in states:
-        processor.process_state(state)
-
-    results = processor.get_result()
-    print(results,flush=True)
-
-    assert len(results.get("Cycle")) == 2
-    assert len(results.get("MaterialEquipped")) == 1
-    assert results.get("Cycle")[0].get("start") == 1
-    assert results.get("Cycle")[0].get("end") == 2
-    assert results.get("Cycle")[0].get("material_equipped") == 2
-    assert results.get("Cycle")[1].get("material_equipped") == 2
 
