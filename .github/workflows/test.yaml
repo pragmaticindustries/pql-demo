@@ -1,0 +1,28 @@
+name: Test
+
+on: [push]
+
+jobs:
+  check:
+    needs: pr
+    name: Check Python ${{ matrix.python }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        python: ['3.8', '3.9', '3.10']
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install .[test,dev]
+    - name: Run flake8
+      run: flake8 src tests
+    - name: Run pytest
+      run: python -W always::DeprecationWarning -m pytest
