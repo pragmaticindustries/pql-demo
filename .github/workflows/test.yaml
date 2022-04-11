@@ -3,8 +3,7 @@ name: Test
 on: [push]
 
 jobs:
-  check:
-    needs: pr
+  test:
     name: Check Python ${{ matrix.python }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
