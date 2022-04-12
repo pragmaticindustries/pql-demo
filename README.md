@@ -64,9 +64,9 @@ Back to topic, what if we could simply express relations between these objects i
 
 Consider the Snippet:
 
-SELECT t.name, 
+SELECT t.name,
   COUNT(SELECT c FROM Cycles [WHERE t.start <= c.start AND c.start < t.end]),
-  LIST(SELECT m.material FROM Materials [WHERE t.start <= m.start AND m.start < t.end]) 
+  LIST(SELECT m.material FROM Materials [WHERE t.start <= m.start AND m.start < t.end])
 FROM Tools
 
 (which is my toy example from the Sawblade-thing).

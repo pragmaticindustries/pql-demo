@@ -2,7 +2,6 @@ from typing import Iterable, Callable, List, Dict
 
 
 class Context:
-
     def __init__(self):
         super().__init__()
 
@@ -17,21 +16,21 @@ class Context:
 
 
 class RootContext(Context):
-
     def __init__(self, entity_list_resolver, aggregate_functions):
         super().__init__()
         self.entity_list_resolver = entity_list_resolver
         self.aggregate_functions = aggregate_functions
 
     def list_entity(self, entity_name: str, where_clause=None, group_by_clause=None):
-        return self.entity_list_resolver(entity_name, where_clause=where_clause, group_by_clause=group_by_clause)
+        return self.entity_list_resolver(
+            entity_name, where_clause=where_clause, group_by_clause=group_by_clause
+        )
 
     def get_aggregate_function(self, name: str):
         return self.aggregate_functions(name)
 
 
 class ChildContext(Context):
-
     def __init__(self, parent: Context = None):
         super().__init__()
         self.parent = parent
@@ -44,7 +43,6 @@ class ChildContext(Context):
 
 
 class EntityContext(ChildContext):
-
     def __init__(self, parent: Context, entity):
         super().__init__(parent)
         self.entity = entity
@@ -56,7 +54,6 @@ class AggFunction:
 
 
 class SelectEntry:
-
     def __init__(self, name: str):
         self.name = name
 
@@ -65,7 +62,6 @@ class SelectEntry:
 
 
 class Projection(SelectEntry):
-
     def __init__(self, field, name=None):
         super().__init__(name or field)
         self.field = field
@@ -88,7 +84,6 @@ class Projection(SelectEntry):
 
 
 class SubQuery(SelectEntry):
-
     def __init__(self, query: "Query", name: str):
         super().__init__(name)
         self.query = query
@@ -96,14 +91,15 @@ class SubQuery(SelectEntry):
     def execute(self, context: Context):
         entity = context.entity
         if isinstance(entity, Dict):
-            self.query.where_clause = lambda o: entity.get("start") <= o.get("start") and o.get("start") < entity.get("end")
+            self.query.where_clause = lambda o: entity.get("start") <= o.get(
+                "start"
+            ) and o.get("start") < entity.get("end")
             return self.query.execute(context)
         else:
             raise NotImplementedError("")
 
 
 class Aggregation(SelectEntry):
-
     def __init__(self, agg_function_name: str, query: "Query", name: str = None):
         super().__init__(name or "agg")
         self.agg_function_name = agg_function_name
@@ -112,7 +108,9 @@ class Aggregation(SelectEntry):
     def execute(self, context: Context):
         entity = context.entity
         if isinstance(entity, Dict):
-            self.query.where_clause = lambda o: entity.get("start") <= o.get("start") and o.get("start") < entity.get("end")
+            self.query.where_clause = lambda o: entity.get("start") <= o.get(
+                "start"
+            ) and o.get("start") < entity.get("end")
             result = self.query.execute(context)
             agg_function = context.get_aggregate_function(self.agg_function_name)
             return agg_function.execute(result)
@@ -120,8 +118,9 @@ class Aggregation(SelectEntry):
             # Do what we want to do on all subcontexts
             results = []
             for e in entity:
-                self.query.where_clause = lambda o: e.get("start") <= o.get("start") and o.get("start") < e.get(
-                    "end")
+                self.query.where_clause = lambda o: e.get("start") <= o.get(
+                    "start"
+                ) and o.get("start") < e.get("end")
                 result = self.query.execute(context)
                 results.extend(result)
             agg_function = context.get_aggregate_function(self.agg_function_name)
@@ -129,15 +128,22 @@ class Aggregation(SelectEntry):
 
 
 class Query:
-
-    def __init__(self, selects: List[SelectEntry], entity_type: str, where_clause=None, group_by_clause:List[Projection]=None):
+    def __init__(
+        self,
+        selects: List[SelectEntry],
+        entity_type: str,
+        where_clause=None,
+        group_by_clause: List[Projection] = None,
+    ):
         self.selects = selects
         self.entity = entity_type
         self.where_clause = where_clause
         self.group_by_clause = group_by_clause
 
     def execute(self, context: Context) -> List[Dict]:
-        objects = context.list_entity(self.entity, self.where_clause, self.group_by_clause)
+        objects = context.list_entity(
+            self.entity, self.where_clause, self.group_by_clause
+        )
 
         results = []
         for o in objects:
@@ -150,13 +156,11 @@ class Query:
 
 
 class CountFunction(AggFunction):
-
     def execute(self, result):
         return len(result)
 
 
 class Flatten(AggFunction):
-
     def execute(self, result):
         """
         We assume here that we only have one key
@@ -166,7 +170,5 @@ class Flatten(AggFunction):
         else:
             return result
 
-agg_functions = {
-    "count": CountFunction(),
-    "flatten": Flatten()
-}
+
+agg_functions = {"count": CountFunction(), "flatten": Flatten()}
