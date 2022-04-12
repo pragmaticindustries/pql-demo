@@ -9,7 +9,7 @@ class Context:
     def create_query_context(self, entity_type):
         return EntityContext(self, entity_type)
 
-    def list_entity(self, entity_name: str):
+    def list_entity(self, entity_name: str, where_clause=None, group_by_clause=None):
         pass
 
     def get_aggregate_function(self, name: str):
@@ -23,8 +23,8 @@ class RootContext(Context):
         self.entity_list_resolver = entity_list_resolver
         self.aggregate_functions = aggregate_functions
 
-    def list_entity(self, entity_name: str):
-        return self.entity_list_resolver(entity_name)
+    def list_entity(self, entity_name: str, where_clause=None, group_by_clause=None):
+        return self.entity_list_resolver(entity_name, where_clause=where_clause, group_by_clause=group_by_clause)
 
     def get_aggregate_function(self, name: str):
         return self.aggregate_functions(name)
@@ -36,8 +36,8 @@ class ChildContext(Context):
         super().__init__()
         self.parent = parent
 
-    def list_entity(self, entity_name: str):
-        return self.parent.list_entity(entity_name)
+    def list_entity(self, entity_name: str, where_clause=None, group_by_clause=None):
+        return self.parent.list_entity(entity_name, where_clause, group_by_clause)
 
     def get_aggregate_function(self, name: str):
         return self.parent.get_aggregate_function(name)
@@ -73,13 +73,18 @@ class Projection(SelectEntry):
     def execute(self, context: Context):
         entity = context.entity
 
-        if self.field == "*":
-            return None
+        if isinstance(entity, Dict):
+            if self.field == "*":
+                return None
 
-        if not self.field in entity:
-            print(f"Missing {self.field}?")
+            if not self.field in entity:
+                print(f"Missing {self.field}?")
 
-        return entity.get(self.field)
+            return entity.get(self.field)
+        elif isinstance(entity, List):
+            return self.execute(EntityContext(context, entity[0]))
+        else:
+            raise Exception("...")
 
 
 class SubQuery(SelectEntry):
@@ -90,8 +95,11 @@ class SubQuery(SelectEntry):
 
     def execute(self, context: Context):
         entity = context.entity
-        self.query.where_clause = lambda o: entity.get("start") <= o.get("start") and o.get("start") < entity.get("end")
-        return self.query.execute(context)
+        if isinstance(entity, Dict):
+            self.query.where_clause = lambda o: entity.get("start") <= o.get("start") and o.get("start") < entity.get("end")
+            return self.query.execute(context)
+        else:
+            raise NotImplementedError("")
 
 
 class Aggregation(SelectEntry):
@@ -103,26 +111,33 @@ class Aggregation(SelectEntry):
 
     def execute(self, context: Context):
         entity = context.entity
-        self.query.where_clause = lambda o: entity.get("start") <= o.get("start") and o.get("start") < entity.get("end")
-        result = self.query.execute(context)
-        agg_function = context.get_aggregate_function(self.agg_function_name)
-        return agg_function.execute(result)
+        if isinstance(entity, Dict):
+            self.query.where_clause = lambda o: entity.get("start") <= o.get("start") and o.get("start") < entity.get("end")
+            result = self.query.execute(context)
+            agg_function = context.get_aggregate_function(self.agg_function_name)
+            return agg_function.execute(result)
+        elif isinstance(entity, List):
+            # Do what we want to do on all subcontexts
+            results = []
+            for e in entity:
+                self.query.where_clause = lambda o: e.get("start") <= o.get("start") and o.get("start") < e.get(
+                    "end")
+                result = self.query.execute(context)
+                results.extend(result)
+            agg_function = context.get_aggregate_function(self.agg_function_name)
+            return agg_function.execute(results)
 
 
 class Query:
 
-    def __init__(self, selects: List[SelectEntry], entity: str, where_clause=None):
+    def __init__(self, selects: List[SelectEntry], entity_type: str, where_clause=None, group_by_clause:List[Projection]=None):
         self.selects = selects
-        self.entity = entity
+        self.entity = entity_type
         self.where_clause = where_clause
+        self.group_by_clause = group_by_clause
 
-    def execute(self, context: Context) -> Iterable[Dict]:
-        if not self.where_clause:
-            objects = context.list_entity(self.entity)
-        elif isinstance(self.where_clause, Callable):
-            objects = [o for o in context.list_entity(self.entity) if self.where_clause(o)]
-        else:
-            raise Exception("")
+    def execute(self, context: Context) -> List[Dict]:
+        objects = context.list_entity(self.entity, self.where_clause, self.group_by_clause)
 
         results = []
         for o in objects:

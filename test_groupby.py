@@ -1,9 +1,13 @@
+import random
 import uuid
 from datetime import datetime, timedelta
 from random import uniform
-from typing import Iterable, Tuple, Callable, Any, Union, List, Dict
+from typing import Iterable
 
-from pql import Query, Projection, Aggregation, SubQuery, RootContext, agg_functions, Context, EntityContext
+from main import get_all_assets
+from pql import EntityContext, agg_functions, RootContext, Query, Projection, Aggregation, SubQuery
+
+random.seed(123)
 
 
 def create_cycles(n):
@@ -64,36 +68,28 @@ def get_all_assets(name: str) -> Iterable[dict]:
         raise Exception("")
 
 
-if __name__ == '__main__':
-    # SELECT t.name, COUNT(SELECT c FROM Cycles [WHERE t.start <= c.start AND c.start < t.end]),
-    # LIST(SELECT m.material FROM Materials [WHERE t.start <= m.start AND m.start < t.end])
-    # FROM Tools
+class InMemoryAssetRetriever:
 
-    # Root Context is what defines the boundaries and where to read the entities from
-    class InMemoryAssetRetriever:
+    def get_assets(self, asset_type, where_clause, group_by_clause):
+        assets = get_all_assets(asset_type)
+        if where_clause:
+            assets = [o for o in assets if where_clause(o)]
+        if group_by_clause:
+            def get_group_for_object(o):
+                return tuple([p.execute(EntityContext(None, o)) for p in group_by_clause])
 
-        def get_assets(self, asset_type, where_clause, group_by_clause):
-            assets = get_all_assets(asset_type)
-            if where_clause:
-                assets = [o for o in assets if where_clause(o)]
-            if group_by_clause:
-                def get_group_for_object(o):
-                    return tuple([p.execute(EntityContext(None, o)) for p in group_by_clause])
+            groups = list({get_group_for_object(o) for o in assets})
 
-                groups = list({get_group_for_object(o) for o in assets})
-
-                # Now return the assets in chunks
-                assets = [[o for o in assets if get_group_for_object(o) == g] for g in groups]
-            return assets
+            # Now return the assets in chunks
+            assets = [[o for o in assets if get_group_for_object(o) == g] for g in groups]
+        return assets
 
 
-    asset_retriever = InMemoryAssetRetriever()
-    context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
+asset_retriever = InMemoryAssetRetriever()
+context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
 
-    # Concrete Example:
-    # SELECT t.name, COUNT(SELECT c FROM Cycles) AS "cycles", FLATTEN(SELECT m.material FROM Materials) AS "products",
-    # (SELECT m.material, COUNT(SELECT c FROM Cycles) FROM Materials) AS "material_and_count"
-    # FROM Tools
+
+def test_query():
     query = Query([
         Projection("name"),
         Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
@@ -106,19 +102,7 @@ if __name__ == '__main__':
 
     results = query.execute(context)
 
-    # The result is a list of dicts representing a (probably nested) table
-    print(results)
-
-
-    # Example 2: Filter by Material
-    # SELECT m.material, COUNT(SELECT c FROM Cycles) AS "cycles"
-    # FROM Materials
-    query = Query([
-        Projection("material"),
-        Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles")
-    ], "Materials", group_by_clause=[Projection("material")])
-
-    results = query.execute(context)
-
-    # The result is a list of dicts representing a (probably nested) table
-    print(results)
+    assert results[0] == {'cycles': 24, 'name': 'Tool 0', 'material_and_count': [
+        {'cycles': 21, 'material': 'Material 0'},
+        {'cycles': 19, 'material': 'Material 1'}],
+                          'products': ['Material 0', 'Material 1']}
