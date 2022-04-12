@@ -136,7 +136,7 @@ class Query:
         self.where_clause = where_clause
         self.group_by_clause = group_by_clause
 
-    def execute(self, context: Context) -> Iterable[Dict]:
+    def execute(self, context: Context) -> List[Dict]:
         objects = context.list_entity(self.entity, self.where_clause, self.group_by_clause)
 
         results = []
