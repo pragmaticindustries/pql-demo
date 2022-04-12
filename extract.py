@@ -269,11 +269,13 @@ class Parameter(FieldType):
 
 class StateProcessor(object):
 
-    def __init__(self, config, element) -> None:
+    def __init__(self, config, element,new_config) -> None:
         super().__init__()
         self.config = config
         self.context = {}
         self.end_result = {}
+        if not new_config:
+            self.reset_fk_constraints_and_autogen_fields()
         self.__init_context__(element)
 
     def __exctract_all_items__(self, entity, state):
@@ -300,7 +302,7 @@ class StateProcessor(object):
         for entity in self.config.keys():
             for k, v in self.config.get(entity).items():
                 if v.is_generated() and not v.is_foreignkey():
-                    element: ReferenceFieldType = v
+                    element: FieldType = v
                     element.reset()
 
     def reset_fk_constraints_and_autogen_fields(self):
@@ -308,7 +310,7 @@ class StateProcessor(object):
         for entity in self.config.keys():
             for k, v in self.config.get(entity).items():
                 if v.is_generated():
-                    element: ReferenceFieldType = v
+                    element: FieldType = v
                     element.reset()
 
     def __init_context__(self, first_element_of_stream):
@@ -322,6 +324,7 @@ class StateProcessor(object):
                                                                   not v.is_generated() and not v.is_foreignkey()}
             self.end_result.update({f"{entity}": []})
             self.end_result[entity].append(x)
+        self.process_foreingkeys(entity)
 
 
     def process_state(self, state):
