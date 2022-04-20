@@ -1,3 +1,4 @@
+from database_classes import delete_all_rows, migrate
 from typing import overload
 
 import pytest
@@ -37,6 +38,8 @@ def run_processor(states):
     :param states:
     :return:
     """
+    migrate()
+    delete_all_rows()
 
     processor = StateProcessor(get_config())
     processor.init_context(states[0])
@@ -94,31 +97,12 @@ def test_cycle_material_switch():
 
     assert len(results.get("Cycle")) == 2
     assert len(results.get("MaterialEquipped")) == 2
+    assert results.get("MaterialEquipped")[0] == {'id': 1, 'uuid': '5bb7fb0f-d8d9-415b-8725-460b8ce504db', 'material_name': 'Material 1', 'start': 1, 'end': 2}
+    assert results.get("MaterialEquipped")[1] == {'id': 2, 'uuid': '0583542f-4cd5-413d-8c6e-3438c63be5a9', 'material_name': 'Material 2', 'start': 3, 'end': 4}
 
-    assert results.get("MaterialEquipped")[0] == {
-        "id": 1,
-        "material_name": "Material 1",
-        "start": 1,
-        "end": 2,
-    }
-    assert results.get("MaterialEquipped")[1] == {
-        "id": 2,
-        "material_name": "Material 2",
-        "start": 3,
-        "end": 4,
-    }
-    assert results.get("Cycle")[0] == {
-        "start": 1,
-        "end": 2,
-        "id": 21,
-        "material_equipped": 1,
-    }
-    assert results.get("Cycle")[1] == {
-        "start": 3,
-        "end": 4,
-        "id": 22,
-        "material_equipped": 2,
-    }
+    assert results.get("Cycle")[0] == {'id': 21, 'uuid': 'b1cb1816-7d85-457c-9f32-2a1422d00e17', 'start': 1, 'end': 2, 'material_equipped': 1}
+
+    assert results.get("Cycle")[1] == {'id': 22, 'uuid': 'ce9c02e4-aafb-4062-97ff-bbaaeca05990', 'start': 3, 'end': 4, 'material_equipped': 2}
 
 
 def get_config1() -> dict:
@@ -149,6 +133,7 @@ def run_processor1(states):
 
 
 def test_tool_and_others_not():
+
     states = [
         {
             "timestamp": 1,
@@ -178,9 +163,7 @@ def test_tool_and_others_not():
 
     results = run_processor1(states)
 
-    assert results == {
-        "ToolEquipped": [{"id": 1, "tool_name": "Tool1", "start": 1, "end": 4}]
-    }
+    assert results == {'ToolEquipped': [{'id': 1, 'tool_name': 'Tool1', 'uuid': 'b1cb1816-7d85-457c-9f32-2a1422d00e17', 'start': 1, 'end': 4}]}
 
 
 def get_config2() -> dict:
@@ -260,6 +243,9 @@ def test_tool_change_and_relation_with_cycle():
         ],
         "Cycle": [{"id": 21, "start": 1, "end": 2}, {"id": 22, "start": 3, "end": 5}],
     }
+    results = run_processor(states, config2, True)
+    print(results)
+    assert results == {'ToolEquipped': [{'id': 1, 'tool_name': 'Tool1', 'uuid': 'b1cb1816-7d85-457c-9f32-2a1422d00e17', 'start': 1, 'end': 3}, {'id': 2, 'tool_name': 'Tool2', 'uuid': '5bb7fb0f-d8d9-415b-8725-460b8ce504db', 'start': 4, 'end': 4}, {'id': 3, 'tool_name': 'Tool3', 'uuid': 'ce9c02e4-aafb-4062-97ff-bbaaeca05990', 'start': 5, 'end': 5}]}
 
 
 def get_config3() -> dict:
