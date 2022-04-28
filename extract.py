@@ -7,10 +7,12 @@ from database_classes import insert_entity, PqlEntity,\
     update_end_of_entity_and_in_json_with_id, delete_all_rows, migrate
 
 
-global faker1
-faker1= Faker()
+faker1: Faker = Faker()
 Faker.seed(4711)
 
+def set_faker(faker):
+   global faker1
+   faker1= faker
 
 class FieldType(object):
     def is_generated(self) -> bool:
@@ -312,6 +314,9 @@ class StateProcessor(object):
         self.context = {}
         self.end_result = {}
         self.init_ids_in_foreignkeys()
+        global  faker1
+        faker1 = Faker()
+        Faker.seed(4711)
 
     def __exctract_all_items__(self, entity, state):
         all_items: dict = {
