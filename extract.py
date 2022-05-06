@@ -1,7 +1,38 @@
 import random
 import uuid
 from typing import Any
+class Config(object):
+    def get_dict(self)-> dict:
+        raise NotImplementedError
 
+class MasterConfig(Config):
+    def __init__(self,config:dict):
+        self.config = config
+
+    def get_dict(self) -> dict:
+        return self.config
+
+class TransactionConfig(Config):
+    def __init__(self,config:dict):
+        self.config = config
+
+    def get_dict(self) -> dict:
+        return self.config
+
+class CombinedConfig(Config):
+    def __init__(self,masterconfig:MasterConfig,transactionconfig:TransactionConfig):
+        self.masterconfig: MasterConfig = masterconfig
+        self.transactionconfig : TransactionConfig = transactionconfig
+        self.config:dict = {**masterconfig.get_dict(), **transactionconfig.get_dict()}
+
+    def get_dict(self) -> dict:
+        return self.config
+
+    def get_master_config(self):
+        return self.masterconfig
+
+    def get_transaction_config(self):
+        return  self.transactionconfig
 
 class FieldType(object):
     def is_generated(self) -> bool:
@@ -295,9 +326,9 @@ class Parameter(FieldType):
 
 
 class StateProcessor(object):
-    def __init__(self, config) -> None:
+    def __init__(self, config: CombinedConfig) -> None:
         super().__init__()
-        self.config = config
+        self.config: CombinedConfig = config
         self.context = {}
         self.end_result = {}
         self.init_ids_in_foreignkeys()
@@ -305,7 +336,7 @@ class StateProcessor(object):
     def __exctract_all_items__(self, entity, state):
         all_items: dict = {
             k: v.apply(state)
-            for k, v in self.config.get(entity).get("fields").items()
+            for k, v in self.config.get_dict().get(entity).get("fields").items()
             if not v.is_foreignkey()
         }
         all_items.update(
@@ -316,7 +347,7 @@ class StateProcessor(object):
     def __extract_all_not_autogen_items__(self, entity, state):
         all_items: dict = {
             k: v.apply(state)
-            for k, v in self.config.get(entity).get("fields").items()
+            for k, v in self.config.get_dict().get(entity).get("fields").items()
             if not v.is_generated() and not v.is_foreignkey()
         }
         all_items.update(
@@ -327,34 +358,34 @@ class StateProcessor(object):
     def reset_foreignkeys_and_constraints(self):
         """Needed for Tests if there are two ore more tests,
         the ID fk and constrians should be remove otherway there will be Errors"""
-        for entity in self.config.keys():
-            for k, v in self.config.get(entity).get("fields").items():
+        for entity in self.config.get_dict().keys():
+            for k, v in self.config.get_dict().get(entity).get("fields").items():
                 if v.is_generated() and v.is_foreignkey():
                     element: ReferenceFieldType = v
                     element.reset()
 
     def reset_autogen_fields(self):
         """Needed if there is one config for many Tests"""
-        for entity in self.config.keys():
-            for k, v in self.config.get(entity).get("fields").items():
+        for entity in self.config.get_dict().keys():
+            for k, v in self.config.get_dict().get(entity).get("fields").items():
                 if v.is_generated() and not v.is_foreignkey():
                     element: FieldType = v
                     element.reset()
 
     def reset_fk_constraints_and_autogen_fields(self):
         """Same thing needed for tests or if after nay brake down the Ids and so one shoulb be 0"""
-        for entity in self.config.keys():
-            for k, v in self.config.get(entity).get("fields").items():
+        for entity in self.config.get_dict().keys():
+            for k, v in self.config.get_dict().get(entity).get("fields").items():
                 if v.is_generated():
                     element: FieldType = v
                     element.reset()
 
     def init_ids_in_foreignkeys(self):
-        for entity in self.config.keys():
-            for k,v in self.config.get(entity).get("fields").items():
+        for entity in self.config.get_dict().keys():
+            for k,v in self.config.get_dict().get(entity).get("fields").items():
                 if v.is_generated() and v.is_foreignkey():
                     parameter:ReferenceFieldType = v
-                    parameter.set_own_id(self.config.get(entity).get("primary_key"))
+                    parameter.set_own_id(self.config.get_dict().get(entity).get("primary_key"))
 
 
     def init_context(self, first_element_of_stream):
@@ -362,10 +393,10 @@ class StateProcessor(object):
         The dict gets its Entitys here and get empty Arrays for appending each entry in the array later
         The first Element of the Stream will be append here, so we check if the acctual element is diffrent form this init  one"""
         self.changed = set()
-        for entity in self.config.keys():
+        for entity in self.config.get_dict().keys():
             x = {
                 k: v.apply(first_element_of_stream)
-                for k, v in self.config.get(entity).get("fields").items()
+                for k, v in self.config.get_dict().get(entity).get("fields").items()
                 if not v.is_foreignkey()
             }
             x.update(
@@ -376,7 +407,7 @@ class StateProcessor(object):
             )
             self.context[entity] = {
                 k: v.apply(first_element_of_stream)
-                for k, v in self.config.get(entity).get("fields").items()
+                for k, v in self.config.get_dict().get(entity).get("fields").items()
                 if not v.is_generated() and not v.is_foreignkey()
             }
             self.end_result.update({f"{entity}": []})
@@ -387,10 +418,10 @@ class StateProcessor(object):
 
     def process_state(self, state):
         self.changed = set()
-        for entity in self.config.keys():
+        for entity in self.config.get_dict().keys():
             current_context = {
                 k: v.apply(state)
-                for k, v in self.config.get(entity).get("fields").items()
+                for k, v in self.config.get_dict().get(entity).get("fields").items()
                 if not v.is_generated() and not v.is_foreignkey()
             }
             if self.context[entity] != current_context:
@@ -413,8 +444,8 @@ class StateProcessor(object):
         removed = set()
         for element in self.changed:
             if not element in removed:
-                for entitys in self.config.keys():
-                    for k, v in self.config.get(entitys).get("fields").items():
+                for entitys in self.config.get_dict().keys():
+                    for k, v in self.config.get_dict().get(entitys).get("fields").items():
                         if v.is_generated() and v.is_foreignkey():
                             value: ReferenceFieldType = v
                             fk_entity = value.config_entity
@@ -429,7 +460,7 @@ class StateProcessor(object):
                                 removed.add(fk_entity)
                                 result_set = {
                                     k: v.apply(element, k, self.end_result)
-                                    for k, v in self.config.get(element)
+                                    for k, v in self.config.get_dict().get(element)
                                     .get("fields")
                                     .items()
                                     if v.is_generated() and v.is_foreignkey()
@@ -544,6 +575,9 @@ if __name__ == "__main__":
             },
             # CREATE TABLE Cycle (id BIGINT SERIAL PRIMARY KEY, material_equipped BIGINT NON NULL)
             # CREATE FOREIGN KEY ...
+        }
+    def get_transaction_config() -> dict:
+            return {
             "ToolEquipped": {
                 "fields": {
                     "id": AutoGeneratedField(),
@@ -563,7 +597,11 @@ if __name__ == "__main__":
             },
         }
 
-    processor = StateProcessor(get_config())
+    master_config = MasterConfig(get_config())
+    transaction_config = TransactionConfig(get_transaction_config())
+    config: CombinedConfig = CombinedConfig(master_config,transaction_config)
+
+    processor = StateProcessor(config)
     processor.init_context(states[0])
     for state in states:
         processor.process_state(state)
