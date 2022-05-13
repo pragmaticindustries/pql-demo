@@ -123,9 +123,30 @@ if __name__ == "__main__":
     context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
 
     # Concrete Example:
+    # SELECT t.name, COUNT(SELECT c FROM Cycles) AS "cycles" FROM Tools
+
+    query = Query(
+        [
+            Projection("name"),
+            Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
+        ],
+        "Tools",
+    )
+
+    results = query.execute(context)
+
+    # The result is a list of dicts representing a (probably nested) table
+    print(results)
+
+    # Concrete Example:
+    # SELECT COUNT(*) FROM Cycles, ToolEquipped AS t WHERE t.name = "Tool 0"
+
+
+
+    # Concrete Example:
     # SELECT t.name, COUNT(SELECT c FROM Cycles) AS "cycles", FLATTEN(SELECT m.material FROM Materials) AS "products",
     # (SELECT m.material, COUNT(SELECT c FROM Cycles) FROM Materials) AS "material_and_count"
-    # FROM Tools
+    # FROM Tools AS t
     query = Query(
         [
             Projection("name"),
