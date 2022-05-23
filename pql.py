@@ -236,7 +236,7 @@ class Query:
         results = []
         for o in objects:
             ctx = context.create_query_context(o)
-            single_result = dict([(s.name, s.execute(ctx)) for s in self.selects])
+            single_result:dict = dict([(s.name, s.execute(ctx)) for s in self.selects])
             results.append(single_result)
 
         return results
@@ -258,4 +258,4 @@ class Flatten(AggFunction):
             return result
 
 
-agg_functions = {"count": CountFunction(), "flatten": Flatten()}
+agg_functions: dict = {"count": CountFunction(), "flatten": Flatten()}

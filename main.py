@@ -2,7 +2,7 @@ import random
 import uuid
 from datetime import datetime, timedelta
 from random import uniform
-from typing import Iterable
+from typing import Iterable, List, Dict
 
 from pql import (
     Query,
@@ -17,8 +17,8 @@ from pql import (
 
 def create_cycles(n):
     random.seed(123)
-    cycles = []
-    timestamp = datetime.now()
+    cycles: List[Dict] = []
+    timestamp: datetime = datetime.now()
     for i in range(0, n):
         cycle_duration = timedelta(seconds=uniform(20.0, 30.0))
         pause = timedelta(seconds=uniform(1.0, 60.0))
@@ -38,7 +38,7 @@ def create_cycles(n):
 
 def create_tools(n):
     random.seed(123)
-    tools = []
+    tools: List[Dict] = []
     timestamp = datetime.now()
     for i in range(0, n):
         duration = timedelta(minutes=uniform(20.0, 40.0))
@@ -60,7 +60,7 @@ def create_tools(n):
 
 def create_materials(n):
     random.seed(123)
-    materials = []
+    materials: List[Dict] = []
     timestamp = datetime.now()
     for i in range(0, n):
         duration = timedelta(minutes=uniform(10.0, 20.0))
@@ -81,6 +81,7 @@ def create_materials(n):
 
 
 def print_index_of_array(array: []):
+    element: dict
     for element in array:
         print(element)
 
@@ -120,7 +121,7 @@ class InMemoryAssetRetriever:
                     [p.execute(EntityContext(None, o)) for p in group_by_clause]
                 )
 
-            groups = list({get_group_for_object(o) for o in assets})
+            groups:list = list({get_group_for_object(o) for o in assets})
 
             # Now return the assets in chunks
             assets = [
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         ],
         "Tools",
     )
-    results = query.execute(context)
+    results: List[Dict] = query.execute(context)
 
     # The result is a list of dicts representing a (probably nested) table
 
@@ -155,7 +156,7 @@ if __name__ == "__main__":
     # Concrete Example:
     # SELECT COUNT(*) FROM Cycles, ToolEquipped AS t WHERE t.name = "Tool 0"
 
-    query = Query(
+    query: Query = Query(
         [
             Projection("id"),
             Aggregation("count", Query([Projection("id")], "Cycles"), name="cycles"),
@@ -163,14 +164,14 @@ if __name__ == "__main__":
         "Tools",
         EqPredicate("name", "Tool 0")
     )
-    results = query.execute(context)
+    results: List[Dict] = query.execute(context)
     print(results)
 
     # Concrete Example:
     # SELECT t.name, COUNT(SELECT c FROM Cycles) AS "cycles", FLATTEN(SELECT m.material FROM Materials) AS "products",
     # (SELECT m.material, COUNT(SELECT c FROM Cycles) FROM Materials) AS "material_and_count"
     # FROM Tools AS t
-    query = Query(
+    query :Query = Query(
         [
             Projection("name"),
             Aggregation("count", Query([Projection("id")], "Cycles"), name="cycles"),
@@ -193,7 +194,7 @@ if __name__ == "__main__":
         "Tools",
     )
 
-    results = query.execute(context)
+    results: List[Dict] = query.execute(context)
 
     # The result is a list of dicts representing a (probably nested) table
     print(results)
@@ -201,7 +202,7 @@ if __name__ == "__main__":
     # Example 2: Filter by Material
     # SELECT m.material, COUNT(SELECT c FROM Cycles) AS "cycles"
     # FROM Materials
-    query = Query(
+    query: Query = Query(
         [
             Projection("material"),
             Aggregation("count", Query([Projection("id")], "Cycles"), name="cycles"),
@@ -210,133 +211,133 @@ if __name__ == "__main__":
         group_by_clause=[Projection("material")],
     )
 
-    results = query.execute(context)
+    results: List[Dict] = query.execute(context)
 
     # The result is a list of dicts representing a (probably nested) table
     print(results)
 
-    query = Query(
+    query: Query = Query(
         [Projection("id"), Projection("material"), Projection("start"), Projection("end"), Projection("machine")],
         "Materials")
-    results_all_materials = query.execute(context)
+    results_all_materials: List[Dict] = query.execute(context)
 
     assert results_all_materials == generated_materials
 
-    query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
+    query: Query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
                   "Tools")
-    results_all_tools = query.execute(context)
+    results_all_tools: List[Dict] = query.execute(context)
 
     assert results_all_tools == generated_tools
 
-    query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles")
-    results_all_cycles = query.execute(context)
+    query: Query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles")
+    results_all_cycles: List[Dict] = query.execute(context)
 
     assert results_all_cycles == generated_cycles
 
-    query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
+    query: Query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
                   EqPredicate("id", generated_cycles[0].get("id")))
-    results_eq_cycles = query.execute(context)
+    results_eq_cycles: List[Dict] = query.execute(context)
 
     assert results_eq_cycles[0] == generated_cycles[0]
 
-    query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
+    query: Query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
                   LowerPredicate("id", 5))
-    results_lower_cycle = query.execute(context)
+    results_lower_cycle: List[Dict] = query.execute(context)
 
     first_four = generated_cycles[0:5]
     assert results_lower_cycle == first_four
 
-    query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
+    query: Query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
                   LowerEqPredicate("id", 5))
-    results_lower_eq_cycles = query.execute(context)
+    results_lower_eq_cycles: List[Dict] = query.execute(context)
 
     first_five = generated_cycles[0:6]
     assert results_lower_eq_cycles == first_five
 
-    query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
+    query: Query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
                   GreaterPredicate("id", 5))
-    results_greater_cycles = query.execute(context)
+    results_greater_cycles: List[Dict] = query.execute(context)
 
     first_four = generated_cycles[6:]
     assert results_greater_cycles == first_four
 
-    query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
+    query: Query = Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles",
                   GreaterEqPredicate("id", 5))
-    results_greater_eq_cycles = query.execute(context)
+    results_greater_eq_cycles: List[Dict] = query.execute(context)
 
     first_five = generated_cycles[5:]
     assert results_greater_eq_cycles == first_five
 
     # Materials
-    query = Query(
+    query: Query = Query(
         [Projection("id"), Projection("material"), Projection("start"), Projection("end"), Projection("machine")],
         "Materials", EqPredicate("start", generated_materials[int(len(generated_materials) / 2)].get("start")))
-    results_eq = query.execute(context)
+    results_eq: List[Dict] = query.execute(context)
     assert results_eq[0] == generated_materials[int(len(generated_materials) / 2)]
 
-    query = Query(
+    query: Query = Query(
         [Projection("id"), Projection("material"), Projection("start"), Projection("end"), Projection("machine")],
         "Materials", LowerPredicate("start", generated_materials[int(len(generated_materials) / 2)].get("start")))
-    results_lower_materials = query.execute(context)
+    results_lower_materials: List[Dict] = query.execute(context)
 
     last_half_materials = generated_materials[0:int(len(generated_materials) / 2)]
     assert results_lower_materials == last_half_materials
 
-    query = Query(
+    query: Query = Query(
         [Projection("id"), Projection("material"), Projection("start"), Projection("end"), Projection("machine")],
         "Materials", LowerEqPredicate("start", generated_materials[int(len(generated_materials) / 2)].get("start")))
-    results_lower_eq_materials = query.execute(context)
+    results_lower_eq_materials: List[Dict] = query.execute(context)
 
     last_half_plus_one_materials = generated_materials[0:int(len(generated_materials) / 2) + 1]
     assert results_lower_eq_materials == last_half_plus_one_materials
 
-    query = Query(
+    query: Query = Query(
         [Projection("id"), Projection("material"), Projection("start"), Projection("end"), Projection("machine")],
         "Materials", GreaterPredicate("start", generated_materials[int(len(generated_materials) / 2)].get("start")))
-    results_greater_materials = query.execute(context)
+    results_greater_materials: List[Dict] = query.execute(context)
 
     first_half_materials = generated_materials[int(len(generated_materials) / 2) + 1:]
     assert results_greater_materials == first_half_materials
 
-    query = Query(
+    query: Query = Query(
         [Projection("id"), Projection("material"), Projection("start"), Projection("end"), Projection("machine")],
         "Materials", GreaterEqPredicate("start", generated_materials[int(len(generated_materials) / 2)].get("start")))
-    results_greater_eq_materials = query.execute(context)
+    results_greater_eq_materials: List[Dict] = query.execute(context)
 
     first_half_minus_one_materials = generated_materials[int(len(generated_materials) / 2):]
     assert results_greater_eq_materials == first_half_minus_one_materials
 
     # Tools
-    query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
+    query: Query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
                   "Tools", EqPredicate("start", generated_tools[int(len(generated_tools) / 2)].get("start")))
     results_eq_tool = query.execute(context)
 
     assert results_eq_tool[0] == generated_tools[int(len(generated_tools) / 2)]
 
-    query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
+    query: Query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
                   "Tools", LowerPredicate("start", generated_tools[int(len(generated_tools) / 2)].get("start")))
-    results_tool_lower = query.execute(context)
+    results_tool_lower: List[Dict] = query.execute(context)
 
     first_half_tools = generated_tools[0:int(len(generated_tools) / 2)]
     assert results_tool_lower == first_half_tools
 
-    query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
+    query: Query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
                   "Tools", LowerEqPredicate("start", generated_tools[int(len(generated_tools) / 2)].get("start")))
-    results_lower_eq_tools = query.execute(context)
+    results_lower_eq_tools: List[Dict] = query.execute(context)
 
     first_half_plus_one_tools = generated_tools[0:int(len(generated_tools) / 2) + 1]
     assert results_lower_eq_tools == first_half_plus_one_tools
 
-    query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
+    query: Query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
                   "Tools", GreaterPredicate("start", generated_tools[int(len(generated_tools) / 2)].get("start")))
-    results_greater_tools = query.execute(context)
+    results_greater_tools: List[Dict] = query.execute(context)
 
     greater_tools = generated_tools[int(len(generated_tools) / 2) + 1:]
     assert results_greater_tools == greater_tools
 
-    query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
+    query: Query = Query([Projection("id"), Projection("name"), Projection("start"), Projection("end"), Projection("machine")],
                   "Tools", GreaterEqPredicate("start", generated_tools[int(len(generated_tools) / 2)].get("start")))
-    results_greater_eq_tools = query.execute(context)
+    results_greater_eq_tools: List[Dict] = query.execute(context)
 
     greater_eq_tools = generated_tools[int(len(generated_tools) / 2):]
     assert results_greater_eq_tools == greater_eq_tools

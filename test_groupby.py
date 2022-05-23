@@ -1,4 +1,5 @@
 import random
+from typing import List, Dict
 
 from main import create_tools, create_cycles, create_materials, InMemoryAssetRetriever
 from pql import (
@@ -17,7 +18,7 @@ asset_retriever = InMemoryAssetRetriever()
 context = RootContext(asset_retriever.get_assets,lambda  s: agg_functions.get(s))
 
 def test_query():
-    query = Query(
+    query: Query = Query(
         [
             Projection("name"),
             Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
@@ -40,7 +41,7 @@ def test_query():
         "Tools",
     )
 
-    results = query.execute(context)
+    results: List[Dict] = query.execute(context)
     assert results[0] == {'name': 'Tool 0', 'cycles': 26, 'products': ['Material 0', 'Material 1'],
                           'material_and_count': [{'material': 'Material 0', 'cycles': 14},
                                                  {'material': 'Material 1', 'cycles': 14}]}
