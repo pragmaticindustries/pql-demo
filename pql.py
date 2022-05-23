@@ -63,9 +63,9 @@ class SelectEntry:
 
 
 class Projection(SelectEntry):
-    def __init__(self, field, name=None):
+    def __init__(self, field: str, name=None):
         super().__init__(name or field)
-        self.field = field
+        self.field: str = field
 
     def execute(self, context: Context):
         entity = context.entity
