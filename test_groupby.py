@@ -8,14 +8,16 @@ from pql import (
     Query,
     Projection,
     Aggregation,
-    SubQuery,)
+    SubQuery,
+)
 
 generated_tools = create_tools(5)
 generated_cycles = create_cycles(100)
 generated_materials = create_materials(10)
 
 asset_retriever = InMemoryAssetRetriever()
-context = RootContext(asset_retriever.get_assets,lambda  s: agg_functions.get(s))
+context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
+
 
 def test_query():
     query: Query = Query(
@@ -42,9 +44,16 @@ def test_query():
     )
 
     results: List[Dict] = query.execute(context)
-    assert results[0] == {'name': 'Tool 0', 'cycles': 26, 'products': ['Material 0', 'Material 1'],
-                          'material_and_count': [{'material': 'Material 0', 'cycles': 14},
-                                                 {'material': 'Material 1', 'cycles': 14}]}
+    assert results[0] == {
+        "name": "Tool 0",
+        "cycles": 26,
+        "products": ["Material 0", "Material 1"],
+        "material_and_count": [
+            {"material": "Material 0", "cycles": 14},
+            {"material": "Material 1", "cycles": 14},
+        ],
+    }
+
 
 # def test_part_query():
 #     query = Query(

@@ -115,7 +115,9 @@ class Aggregation(SelectEntry):
                 "start"
             ) and o.get("start") < entity.get("end")
             result = self.query.execute(context)
-            agg_function: AggFunction = context.get_aggregate_function(self.agg_function_name)
+            agg_function: AggFunction = context.get_aggregate_function(
+                self.agg_function_name
+            )
             return agg_function.execute(result)
         elif isinstance(entity, List):
             # Do what we want to do on all subcontexts
@@ -126,19 +128,19 @@ class Aggregation(SelectEntry):
                 ) and o.get("start") < e.get("end")
                 result = self.query.execute(context)
                 results.extend(result)
-            agg_function: AggFunction = context.get_aggregate_function(self.agg_function_name)
+            agg_function: AggFunction = context.get_aggregate_function(
+                self.agg_function_name
+            )
             return agg_function.execute(results)
 
 
 class Predicate(object):
-
     def check(self, entity: dict) -> bool:
         raise NotImplementedError()
 
 
 class EqPredicate(Predicate):
-
-    def __init__(self, property:str, value):
+    def __init__(self, property: str, value):
         self.property: str = property
         self.value = value
 
@@ -149,12 +151,13 @@ class EqPredicate(Predicate):
             else:
                 return entity.get(self.property) == self.value
         else:
-            raise ValueError(f"Trying predicate check on {entity} field {self.property} but does not exist")
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
 
 
 class GreaterPredicate(Predicate):
-
-    def __init__(self, property:str, value):
+    def __init__(self, property: str, value):
         self.property: str = property
         self.value = value
 
@@ -165,11 +168,13 @@ class GreaterPredicate(Predicate):
             else:
                 return entity.get(self.property) > self.value
         else:
-            raise ValueError(f"Trying predicate check on {entity} field {self.property} but does not exist")
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
+
 
 class GreaterEqPredicate(Predicate):
-
-    def __init__(self, property:str, value):
+    def __init__(self, property: str, value):
         self.property: str = property
         self.value = value
 
@@ -180,12 +185,13 @@ class GreaterEqPredicate(Predicate):
             else:
                 return entity.get(self.property) >= self.value
         else:
-            raise ValueError(f"Trying predicate check on {entity} field {self.property} but does not exist")
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
 
 
 class LowerPredicate(Predicate):
-
-    def __init__(self, property:str, value):
+    def __init__(self, property: str, value):
         self.property: str = property
         self.value = value
 
@@ -196,11 +202,12 @@ class LowerPredicate(Predicate):
             else:
                 return entity.get(self.property) < self.value
         else:
-            raise ValueError(f"Trying predicate check on {entity} field {self.property} but does not exist")
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
 
 
 class LowerEqPredicate(Predicate):
-
     def __init__(self, property: str, value):
         self.property: str = property
         self.value = value
@@ -212,7 +219,9 @@ class LowerEqPredicate(Predicate):
             else:
                 return entity.get(self.property) <= self.value
         else:
-            raise ValueError(f"Trying predicate check on {entity} field {self.property} but does not exist")
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
 
 
 class Query:
@@ -220,7 +229,7 @@ class Query:
         self,
         selects: List[SelectEntry],
         entity_type: str,
-        where_clause:Predicate = None,
+        where_clause: Predicate = None,
         group_by_clause: List[Projection] = None,
     ):
         self.selects: List[SelectEntry] = selects
@@ -236,7 +245,7 @@ class Query:
         results = []
         for o in objects:
             ctx = context.create_query_context(o)
-            single_result:dict = dict([(s.name, s.execute(ctx)) for s in self.selects])
+            single_result: dict = dict([(s.name, s.execute(ctx)) for s in self.selects])
             results.append(single_result)
 
         return results
