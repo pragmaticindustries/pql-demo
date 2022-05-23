@@ -20,8 +20,8 @@ def create_cycles(n):
     cycles: List[Dict] = []
     timestamp: datetime = datetime.now()
     for i in range(0, n):
-        cycle_duration = timedelta(seconds=uniform(20.0, 30.0))
-        pause = timedelta(seconds=uniform(1.0, 60.0))
+        cycle_duration:timedelta = timedelta(seconds=uniform(20.0, 30.0))
+        pause:timedelta = timedelta(seconds=uniform(1.0, 60.0))
         cycles.append(
             {
                 "id": i,
@@ -39,10 +39,10 @@ def create_cycles(n):
 def create_tools(n):
     random.seed(123)
     tools: List[Dict] = []
-    timestamp = datetime.now()
+    timestamp: datetime = datetime.now()
     for i in range(0, n):
-        duration = timedelta(minutes=uniform(20.0, 40.0))
-        pause = timedelta(minutes=uniform(5.0, 15.0))
+        duration: timedelta = timedelta(minutes=uniform(20.0, 40.0))
+        pause: timedelta = timedelta(minutes=uniform(5.0, 15.0))
         tools.append(
             {
                 "id": uuid.uuid4(),
@@ -61,10 +61,10 @@ def create_tools(n):
 def create_materials(n):
     random.seed(123)
     materials: List[Dict] = []
-    timestamp = datetime.now()
+    timestamp: datetime = datetime.now()
     for i in range(0, n):
-        duration = timedelta(minutes=uniform(10.0, 20.0))
-        pause = timedelta(minutes=uniform(0.0, 5.0))
+        duration: timedelta = timedelta(minutes=uniform(10.0, 20.0))
+        pause: timedelta = timedelta(minutes=uniform(0.0, 5.0))
         materials.append(
             {
                 "id": uuid.uuid4(),
@@ -134,14 +134,14 @@ if __name__ == "__main__":
     # SELECT t.name, COUNT(SELECT c FROM Cycles [WHERE t.start <= c.start AND c.start < t.end]),
     # LIST(SELECT m.material FROM Materials [WHERE t.start <= m.start AND m.start < t.end])
     # FROM Tools
-    asset_retriever = InMemoryAssetRetriever()
+    asset_retriever: InMemoryAssetRetriever = InMemoryAssetRetriever()
     # context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
 
-    context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
+    context: RootContext = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
     # Concrete Example:
     # SELECT t.name, COUNT(SELECT c FROM Cycles) AS "cycles" FROM Tools
     print(context)
-    query = Query(
+    query: Query = Query(
         [
             Projection("id"),
             Aggregation("count", Query([Projection("id")], "Cycles"), name="cycles"),

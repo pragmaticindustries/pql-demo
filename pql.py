@@ -34,7 +34,7 @@ class RootContext(Context):
 class ChildContext(Context):
     def __init__(self, parent: Context = None):
         super().__init__()
-        self.parent = parent
+        self.parent: Context = parent
 
     def list_entity(self, entity_name: str, where_clause=None, group_by_clause=None):
         return self.parent.list_entity(entity_name, where_clause, group_by_clause)
@@ -56,7 +56,7 @@ class AggFunction:
 
 class SelectEntry:
     def __init__(self, name: str):
-        self.name = name
+        self.name: str = name
 
     def execute(self, context: Context):
         pass
@@ -88,7 +88,7 @@ class Projection(SelectEntry):
 class SubQuery(SelectEntry):
     def __init__(self, query: "Query", name: str):
         super().__init__(name)
-        self.query = query
+        self.query: Query = query
 
     def execute(self, context: Context):
         entity = context.entity
@@ -105,8 +105,8 @@ class SubQuery(SelectEntry):
 class Aggregation(SelectEntry):
     def __init__(self, agg_function_name: str, query: "Query", name: str = None):
         super().__init__(name or "agg")
-        self.agg_function_name = agg_function_name
-        self.query = query
+        self.agg_function_name: str = agg_function_name
+        self.query: Query = query
 
     def execute(self, context: Context):
         entity = context.entity
@@ -139,7 +139,7 @@ class Predicate(object):
 class EqPredicate(Predicate):
 
     def __init__(self, property:str, value):
-        self.property = property
+        self.property: str = property
         self.value = value
 
     def check(self, entity: dict) -> bool:
@@ -155,7 +155,7 @@ class EqPredicate(Predicate):
 class GreaterPredicate(Predicate):
 
     def __init__(self, property:str, value):
-        self.property = property
+        self.property: str = property
         self.value = value
 
     def check(self, entity: dict) -> bool:
@@ -170,7 +170,7 @@ class GreaterPredicate(Predicate):
 class GreaterEqPredicate(Predicate):
 
     def __init__(self, property:str, value):
-        self.property = property
+        self.property: str = property
         self.value = value
 
     def check(self, entity: dict) -> bool:
@@ -186,7 +186,7 @@ class GreaterEqPredicate(Predicate):
 class LowerPredicate(Predicate):
 
     def __init__(self, property:str, value):
-        self.property = property
+        self.property: str = property
         self.value = value
 
     def check(self, entity: dict) -> bool:
@@ -201,8 +201,8 @@ class LowerPredicate(Predicate):
 
 class LowerEqPredicate(Predicate):
 
-    def __init__(self, property:str, value):
-        self.property = property
+    def __init__(self, property: str, value):
+        self.property: str = property
         self.value = value
 
     def check(self, entity: dict) -> bool:
@@ -223,8 +223,8 @@ class Query:
         where_clause:Predicate = None,
         group_by_clause: List[Projection] = None,
     ):
-        self.selects = selects
-        self.entity = entity_type
+        self.selects: List[SelectEntry] = selects
+        self.entity: str = entity_type
         self.where_clause = where_clause
         self.group_by_clause = group_by_clause
 
