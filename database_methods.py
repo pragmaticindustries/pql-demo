@@ -1,8 +1,5 @@
-import json
-
-from sqlalchemy import Column, Integer, String, BigInteger, JSON
+from sqlalchemy import Column, String, BigInteger, JSON
 from sqlalchemy import create_engine
-from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 

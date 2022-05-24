@@ -1,4 +1,3 @@
-import random
 from typing import List, Dict
 
 from main import create_tools, create_cycles, create_materials, InMemoryAssetRetriever

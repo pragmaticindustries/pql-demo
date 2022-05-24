@@ -1,16 +1,12 @@
-import json
 import random
-import uuid
 from typing import Any
 
 from faker import Faker
+
 from database_methods import (
     migrate,
-    delete_all_rows,
     insert_entity,
-    update_end_of_entity_and_in_json_with_id,
     PqlEntity,
-    get_all_entitys,
 )
 
 faker1: Faker = Faker()
@@ -318,6 +314,7 @@ class SyncDatabase:
         self.end_result = end_result
 
     def synchronize_database(self):
+        migrate()
         en: dict
         for el in self.end_result:
             for en in self.end_result.get(el):
@@ -598,6 +595,7 @@ if __name__ == "__main__":
             },
         }
 
+    # print(states)
     processor = StateProcessor(get_config())
     processor.init_context(states[0])
     for state in states:

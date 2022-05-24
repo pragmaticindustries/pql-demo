@@ -1,5 +1,5 @@
 import uuid
-from typing import Iterable, Callable, List, Dict
+from typing import List, Dict
 
 
 class Context:
@@ -72,8 +72,7 @@ class Projection(SelectEntry):
 
         if isinstance(entity, Dict):
             if self.field == "*":
-                # return entity
-                return None
+                return entity
 
             if not self.field in entity:
                 print(f"Missing {self.field}?")
