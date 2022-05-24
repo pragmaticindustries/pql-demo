@@ -1,3 +1,4 @@
+import uuid
 from typing import Iterable, Callable, List, Dict
 
 
@@ -33,7 +34,7 @@ class RootContext(Context):
 class ChildContext(Context):
     def __init__(self, parent: Context = None):
         super().__init__()
-        self.parent = parent
+        self.parent: Context = parent
 
     def list_entity(self, entity_name: str, where_clause=None, group_by_clause=None):
         return self.parent.list_entity(entity_name, where_clause, group_by_clause)
@@ -55,22 +56,23 @@ class AggFunction:
 
 class SelectEntry:
     def __init__(self, name: str):
-        self.name = name
+        self.name: str = name
 
     def execute(self, context: Context):
         pass
 
 
 class Projection(SelectEntry):
-    def __init__(self, field, name=None):
+    def __init__(self, field: str, name=None):
         super().__init__(name or field)
-        self.field = field
+        self.field: str = field
 
     def execute(self, context: Context):
         entity = context.entity
 
         if isinstance(entity, Dict):
             if self.field == "*":
+                # return entity
                 return None
 
             if not self.field in entity:
@@ -86,10 +88,11 @@ class Projection(SelectEntry):
 class SubQuery(SelectEntry):
     def __init__(self, query: "Query", name: str):
         super().__init__(name)
-        self.query = query
+        self.query: Query = query
 
     def execute(self, context: Context):
         entity = context.entity
+
         if isinstance(entity, Dict):
             self.query.where_clause = lambda o: entity.get("start") <= o.get(
                 "start"
@@ -102,8 +105,8 @@ class SubQuery(SelectEntry):
 class Aggregation(SelectEntry):
     def __init__(self, agg_function_name: str, query: "Query", name: str = None):
         super().__init__(name or "agg")
-        self.agg_function_name = agg_function_name
-        self.query = query
+        self.agg_function_name: str = agg_function_name
+        self.query: Query = query
 
     def execute(self, context: Context):
         entity = context.entity
@@ -112,7 +115,9 @@ class Aggregation(SelectEntry):
                 "start"
             ) and o.get("start") < entity.get("end")
             result = self.query.execute(context)
-            agg_function = context.get_aggregate_function(self.agg_function_name)
+            agg_function: AggFunction = context.get_aggregate_function(
+                self.agg_function_name
+            )
             return agg_function.execute(result)
         elif isinstance(entity, List):
             # Do what we want to do on all subcontexts
@@ -123,8 +128,100 @@ class Aggregation(SelectEntry):
                 ) and o.get("start") < e.get("end")
                 result = self.query.execute(context)
                 results.extend(result)
-            agg_function = context.get_aggregate_function(self.agg_function_name)
+            agg_function: AggFunction = context.get_aggregate_function(
+                self.agg_function_name
+            )
             return agg_function.execute(results)
+
+
+class Predicate(object):
+    def check(self, entity: dict) -> bool:
+        raise NotImplementedError()
+
+
+class EqPredicate(Predicate):
+    def __init__(self, property: str, value):
+        self.property: str = property
+        self.value = value
+
+    def check(self, entity: dict) -> bool:
+        if self.property in entity:
+            if type(self.value) == uuid:
+                return str(entity.get(self.property)) == str(self.value)
+            else:
+                return entity.get(self.property) == self.value
+        else:
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
+
+
+class GreaterPredicate(Predicate):
+    def __init__(self, property: str, value):
+        self.property: str = property
+        self.value = value
+
+    def check(self, entity: dict) -> bool:
+        if self.property in entity:
+            if type(self.value) == uuid:
+                return str(entity.get(self.property)) > str(self.value)
+            else:
+                return entity.get(self.property) > self.value
+        else:
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
+
+
+class GreaterEqPredicate(Predicate):
+    def __init__(self, property: str, value):
+        self.property: str = property
+        self.value = value
+
+    def check(self, entity: dict) -> bool:
+        if self.property in entity:
+            if type(self.value) == uuid:
+                return str(entity.get(self.property)) >= str(self.value)
+            else:
+                return entity.get(self.property) >= self.value
+        else:
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
+
+
+class LowerPredicate(Predicate):
+    def __init__(self, property: str, value):
+        self.property: str = property
+        self.value = value
+
+    def check(self, entity: dict) -> bool:
+        if self.property in entity:
+            if type(self.value) == uuid:
+                return str(entity.get(self.property)) < str(self.value)
+            else:
+                return entity.get(self.property) < self.value
+        else:
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
+
+
+class LowerEqPredicate(Predicate):
+    def __init__(self, property: str, value):
+        self.property: str = property
+        self.value = value
+
+    def check(self, entity: dict) -> bool:
+        if self.property in entity:
+            if type(self.value) == uuid:
+                return str(entity.get(self.property)) <= str(self.value)
+            else:
+                return entity.get(self.property) <= self.value
+        else:
+            raise ValueError(
+                f"Trying predicate check on {entity} field {self.property} but does not exist"
+            )
 
 
 class Query:
@@ -132,11 +229,11 @@ class Query:
         self,
         selects: List[SelectEntry],
         entity_type: str,
-        where_clause=None,
+        where_clause: Predicate = None,
         group_by_clause: List[Projection] = None,
     ):
-        self.selects = selects
-        self.entity = entity_type
+        self.selects: List[SelectEntry] = selects
+        self.entity: str = entity_type
         self.where_clause = where_clause
         self.group_by_clause = group_by_clause
 
@@ -148,8 +245,7 @@ class Query:
         results = []
         for o in objects:
             ctx = context.create_query_context(o)
-            single_result = dict([(s.name, s.execute(ctx)) for s in self.selects])
-
+            single_result: dict = dict([(s.name, s.execute(ctx)) for s in self.selects])
             results.append(single_result)
 
         return results
@@ -171,4 +267,4 @@ class Flatten(AggFunction):
             return result
 
 
-agg_functions = {"count": CountFunction(), "flatten": Flatten()}
+agg_functions: dict = {"count": CountFunction(), "flatten": Flatten()}

@@ -1,12 +1,8 @@
 import random
-import uuid
-from datetime import datetime, timedelta
-from random import uniform
-from typing import Iterable
+from typing import List, Dict
 
-from main import get_all_assets
+from main import create_tools, create_cycles, create_materials, InMemoryAssetRetriever
 from pql import (
-    EntityContext,
     agg_functions,
     RootContext,
     Query,
@@ -15,114 +11,16 @@ from pql import (
     SubQuery,
 )
 
-random.seed(123)
-
-
-def create_cycles(n):
-    cycles = []
-    timestamp = datetime.now()
-    for i in range(0, n):
-        cycle_duration = timedelta(seconds=uniform(20.0, 30.0))
-        pause = timedelta(seconds=uniform(1.0, 60.0))
-        cycles.append(
-            {
-                "id": i,
-                "start": timestamp,
-                "end": timestamp + cycle_duration,
-                "machine": "LHL 01",
-            }
-        )
-
-        timestamp = timestamp + cycle_duration + pause
-
-    return cycles
-
-
-def create_tools(n):
-    tools = []
-    timestamp = datetime.now()
-    for i in range(0, n):
-        duration = timedelta(minutes=uniform(20.0, 40.0))
-        pause = timedelta(minutes=uniform(5.0, 15.0))
-        tools.append(
-            {
-                "id": uuid.uuid4(),
-                "name": f"Tool {i}",
-                "start": timestamp,
-                "end": timestamp + duration,
-                "machine": "LHL 01",
-            }
-        )
-
-        timestamp = timestamp + duration + pause
-
-    return tools
-
-
-def create_materials(n):
-    materials = []
-    timestamp = datetime.now()
-    for i in range(0, n):
-        duration = timedelta(minutes=uniform(10.0, 20.0))
-        pause = timedelta(minutes=uniform(0.0, 5.0))
-        materials.append(
-            {
-                "id": uuid.uuid4(),
-                "material": f"Material {i % 2}",
-                "start": timestamp,
-                "end": timestamp + duration,
-                "machine": "LHL 01",
-            }
-        )
-
-        timestamp = timestamp + duration + pause
-
-    return materials
-
-
 generated_tools = create_tools(5)
 generated_cycles = create_cycles(100)
 generated_materials = create_materials(10)
-
-
-def get_all_assets(name: str) -> Iterable[dict]:
-    if name == "Tools":
-        return generated_tools
-    elif name == "Cycles":
-        return generated_cycles
-    elif name == "Materials":
-        return generated_materials
-    else:
-        raise Exception("")
-
-
-class InMemoryAssetRetriever:
-    def get_assets(self, asset_type, where_clause, group_by_clause):
-        assets = get_all_assets(asset_type)
-        if where_clause:
-            assets = [o for o in assets if where_clause(o)]
-        if group_by_clause:
-
-            def get_group_for_object(o):
-                return tuple(
-                    [p.execute(EntityContext(None, o)) for p in group_by_clause]
-                )
-
-            groups = list({get_group_for_object(o) for o in assets})
-
-            # Now return the assets in chunks
-            assets = [
-                [o for o in assets if get_group_for_object(o) == g] for g in groups
-            ]
-        return assets
-
 
 asset_retriever = InMemoryAssetRetriever()
 context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
 
 
 def test_query():
-    query = Query(
+    query: Query = Query(
         [
             Projection("name"),
             Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
@@ -145,14 +43,78 @@ def test_query():
         "Tools",
     )
 
-    results = query.execute(context)
-
+    results: List[Dict] = query.execute(context)
     assert results[0] == {
-        "cycles": 24,
         "name": "Tool 0",
-        "material_and_count": [
-            {"cycles": 21, "material": "Material 0"},
-            {"cycles": 19, "material": "Material 1"},
-        ],
+        "cycles": 26,
         "products": ["Material 0", "Material 1"],
+        "material_and_count": [
+            {"material": "Material 0", "cycles": 14},
+            {"material": "Material 1", "cycles": 14},
+        ],
     }
+
+
+# def test_part_query():
+#     query = Query(
+#                 [
+#                     Projection("material"),
+#                     Aggregation(
+#                         "count", Query([Projection("*")], "Cycles"), name="cycles"
+#                     ),
+#                 ],
+#                 "Materials",
+#             )
+#     resulst = query.execute(context)
+#     print(resulst)
+#
+# def test_part_qury2():
+#     query = Query(
+#     [
+#         Projection("name"),
+#         Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
+#         Aggregation(
+#             "flatten", Query([Projection("material")], "Materials"), name="products"
+#         )],
+#     "Materials",
+# )
+#     result = query.execute(context)
+#     print(result)
+#
+# def test_simple_group_by():
+#     # print(generated_materials)
+#     query =   Query(
+#         [Projection("id"),Projection("machine"),
+#          Aggregation("count",
+#                      Query(
+#             [Projection("machine")],
+#             "Materials"),name="Anzahl")],
+#         "Materials")
+#     result = query.execute(context)
+#     print(result)
+#
+# def test_count_material_on_machine():
+#     pass
+# def test_sub_query():
+#     query = SubQuery(Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles"),"Cycles")
+#     query.execute(context)
+# def test_sub_query2():
+#     query = Query(
+#     [
+#         SubQuery(
+#             Query(
+#                 [
+#                     Projection("material"),
+#                     Aggregation(
+#                         "count", Query([Projection("*")], "Cycles"), name="cycles"
+#                     ),
+#                 ],
+#                 "Materials",
+#             ),
+#             name="material_and_count",
+#         ),
+#     ],
+#     "Tools",
+# )
+#     results= query.execute(context)
+#     print(results)

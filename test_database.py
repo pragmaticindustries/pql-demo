@@ -41,14 +41,30 @@ def test_one():
         ],
     }
 
-    results:[PqlEntity] = run_database_processor(states)
+    results: [PqlEntity] = run_database_processor(states)
     assert len(results) == 3
-    assert results[0].value == {'id': 21, 'uuid': 'b1cb1816-7d85-457c-9f32-2a1422d00e17', 'start': 1, 'end': 2,
-                                'material_equipped': 1}
-    assert results[1].value == {'id': 22, 'uuid': 'ce9c02e4-aafb-4062-97ff-bbaaeca05990', 'start': 3, 'end': 4,
-                                'material_equipped': 1}
-    assert results[2].value == {'id': 1, 'uuid': '5bb7fb0f-d8d9-415b-8725-460b8ce504db', 'material_name': 'Material 1',
-                                'start': 1, 'end': 4}
+    assert results[0].value == {
+        "id": 21,
+        "uuid": "b1cb1816-7d85-457c-9f32-2a1422d00e17",
+        "start": 1,
+        "end": 2,
+        "material_equipped": 1,
+    }
+    assert results[1].value == {
+        "id": 22,
+        "uuid": "ce9c02e4-aafb-4062-97ff-bbaaeca05990",
+        "start": 3,
+        "end": 4,
+        "material_equipped": 1,
+    }
+    assert results[2].value == {
+        "id": 1,
+        "uuid": "5bb7fb0f-d8d9-415b-8725-460b8ce504db",
+        "material_name": "Material 1",
+        "start": 1,
+        "end": 4,
+    }
+
 
 def test_two():
     states: dict = {
@@ -79,14 +95,29 @@ def test_two():
         ],
     }
 
-    results:[PqlEntity] = run_database_processor(states)
+    results: [PqlEntity] = run_database_processor(states)
     assert len(results) == 3
-    assert results[0].value == {'id': 21, 'uuid': 'b1cb1816-7d85-457c-9f32-2a1422d00e17', 'start': 1, 'end': 2,
-                                'material_equipped': 1}
-    assert results[1].value == {'id': 22, 'uuid': 'ce9c02e4-aafb-4062-97ff-bbaaeca05990', 'start': 3, 'end': 4,
-                                'material_equipped': 1}
-    assert results[2].value == {'id': 1, 'uuid': '5bb7fb0f-d8d9-415b-8725-460b8ce504db', 'material_name': 'Material 1',
-                                'start': 1, 'end': 4}
+    assert results[0].value == {
+        "id": 21,
+        "uuid": "b1cb1816-7d85-457c-9f32-2a1422d00e17",
+        "start": 1,
+        "end": 2,
+        "material_equipped": 1,
+    }
+    assert results[1].value == {
+        "id": 22,
+        "uuid": "ce9c02e4-aafb-4062-97ff-bbaaeca05990",
+        "start": 3,
+        "end": 4,
+        "material_equipped": 1,
+    }
+    assert results[2].value == {
+        "id": 1,
+        "uuid": "5bb7fb0f-d8d9-415b-8725-460b8ce504db",
+        "material_name": "Material 1",
+        "start": 1,
+        "end": 4,
+    }
 
 
 def test_cycle_material_switch():
@@ -157,7 +188,7 @@ def test_cycle_material_switch():
         "material_equipped": 2,
     }
 
-    assert  len(results) == 4
+    assert len(results) == 4
 
     assert results[2].value == material_dict
     assert results[3].value == material_dict2
@@ -181,13 +212,13 @@ def test_tool_and_others_not():
 
     results = run_database_processor(states)
 
-    tool_dict: dict =  {
-                "id": 1,
-                "uuid": "b1cb1816-7d85-457c-9f32-2a1422d00e17",
-                "tool_name": "Tool1",
-                "start": 1,
-                "end": 4,
-            }
+    tool_dict: dict = {
+        "id": 1,
+        "uuid": "b1cb1816-7d85-457c-9f32-2a1422d00e17",
+        "tool_name": "Tool1",
+        "start": 1,
+        "end": 4,
+    }
 
     assert len(results) == 1
 
@@ -270,7 +301,7 @@ def test_tool_change_and_relation_with_cycle():
         ]
     }
 
-    assert  len(results) == 4
+    assert len(results) == 4
 
     assert results[0].value == tool_dict.get("ToolEquipped")[0]
     assert results[1].value == tool_dict.get("ToolEquipped")[1]
