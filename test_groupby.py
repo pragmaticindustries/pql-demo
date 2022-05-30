@@ -16,7 +16,6 @@ from pql import (
 )
 
 
-
 def test_query():
     migrate()
     delete_all_rows_from_pql_entity()
