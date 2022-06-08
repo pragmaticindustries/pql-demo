@@ -31,6 +31,37 @@ class ExtractCounter(Base):
     name = Column(String(36), primary_key=True, unique=True)
     counter_value = Column(BigInteger)
 
+class ExtractRelations(Base):
+    __tablename__ = "extract_relation_dict"
+    name = Column(String(36), primary_key=True, unique=True)
+    value_table = Column(JSON)
+
+def get_saved_constrains_from_name(name:str):
+    session, connection, engine = connect_to_db()
+    result=session.query(ExtractRelations).filter(ExtractRelations.name==name).all()
+    session.close()
+    connection.close()
+    return result
+
+def update_relations_by_name(name:str,upadet_dict:dict):
+    session, connection, engine = connect_to_db()
+    session.query(ExtractRelations).filter(ExtractRelations.name==name).update(
+        {ExtractRelations.value_table: upadet_dict}, synchronize_session=False
+    )
+    session.commit()
+    session.close()
+    connection.close()
+
+def insert_relation_constraints(new_entity:ExtractRelations):
+    session, connection, engine = connect_to_db()
+    try:
+        session.add(new_entity)
+        session.commit()
+        session.close()
+        connection.close()
+    except KeyboardInterrupt:
+        session.close()
+        connection.close()
 
 def select_counter_from_name(name: str):
     sql_str: str = f"SELECT counter_value FROM extract_counter WHERE name ='{name}';"
@@ -97,7 +128,10 @@ def delete_all_rows_from_pql_entity():
 
 def delete_all_rows_from_counter_saving():
     fetch_data_from_query("DELETE FROM extract_counter WHERE TRUE;")
+    delete_all_rows_from_saved_constraints()
 
+def delete_all_rows_from_saved_constraints():
+    fetch_data_from_query("DELETE FROM extract_relation_dict WHERE TRUE;")
 
 def insert_entity(insert_entity: PqlEntity):
     session, connection, engine = connect_to_db()
