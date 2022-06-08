@@ -1,6 +1,11 @@
 from typing import List, Dict
 
-from main import create_tools, create_cycles, create_materials, InMemoryAssetRetriever
+from database_methods import (
+    migrate,
+    delete_all_rows_from_pql_entity,
+    delete_all_rows_from_counter_saving,
+)
+from main import DbMemoryAssetRetriever, create_tools, create_cycles, create_materials
 from pql import (
     agg_functions,
     RootContext,
@@ -10,110 +15,88 @@ from pql import (
     SubQuery,
 )
 
-generated_tools = create_tools(5)
-generated_cycles = create_cycles(100)
-generated_materials = create_materials(10)
-
-asset_retriever = InMemoryAssetRetriever()
-context = RootContext(asset_retriever.get_assets, lambda s: agg_functions.get(s))
-
 
 def test_query():
+    migrate()
+    delete_all_rows_from_pql_entity()
+    delete_all_rows_from_counter_saving()
+    create_tools(5)
+    create_cycles(100)
+    create_materials(10)
+
+    dbassetRetriever: DbMemoryAssetRetriever = DbMemoryAssetRetriever()
+    context: RootContext = RootContext(
+        dbassetRetriever.get_assest, lambda s: agg_functions.get(s)
+    )
+
     query: Query = Query(
         [
-            Projection("name"),
-            Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
+            Projection("tool_name"),
+            Aggregation("count", Query([Projection("*")], "Cycle"), name="cycles"),
             Aggregation(
-                "flatten", Query([Projection("material")], "Materials"), name="products"
+                "flatten",
+                Query([Projection("material_name")], "MaterialEquipped"),
+                name="products",
             ),
             SubQuery(
                 Query(
                     [
-                        Projection("material"),
+                        Projection("material_name"),
                         Aggregation(
-                            "count", Query([Projection("*")], "Cycles"), name="cycles"
+                            "count", Query([Projection("*")], "Cycle"), name="cycles"
                         ),
                     ],
-                    "Materials",
+                    "MaterialEquipped",
                 ),
                 name="material_and_count",
             ),
         ],
-        "Tools",
+        "ToolEquipped",
     )
 
     results: List[Dict] = query.execute(context)
-    assert results[0] == {
-        "name": "Tool 0",
-        "cycles": 26,
-        "products": ["Material 0", "Material 1"],
-        "material_and_count": [
-            {"material": "Material 0", "cycles": 14},
-            {"material": "Material 1", "cycles": 14},
-        ],
-    }
-
-
-# def test_part_query():
-#     query = Query(
-#                 [
-#                     Projection("material"),
-#                     Aggregation(
-#                         "count", Query([Projection("*")], "Cycles"), name="cycles"
-#                     ),
-#                 ],
-#                 "Materials",
-#             )
-#     resulst = query.execute(context)
-#     print(resulst)
-#
-# def test_part_qury2():
-#     query = Query(
-#     [
-#         Projection("name"),
-#         Aggregation("count", Query([Projection("*")], "Cycles"), name="cycles"),
-#         Aggregation(
-#             "flatten", Query([Projection("material")], "Materials"), name="products"
-#         )],
-#     "Materials",
-# )
-#     result = query.execute(context)
-#     print(result)
-#
-# def test_simple_group_by():
-#     # print(generated_materials)
-#     query =   Query(
-#         [Projection("id"),Projection("machine"),
-#          Aggregation("count",
-#                      Query(
-#             [Projection("machine")],
-#             "Materials"),name="Anzahl")],
-#         "Materials")
-#     result = query.execute(context)
-#     print(result)
-#
-# def test_count_material_on_machine():
-#     pass
-# def test_sub_query():
-#     query = SubQuery(Query([Projection("id"), Projection("start"), Projection("end"), Projection("machine")], "Cycles"),"Cycles")
-#     query.execute(context)
-# def test_sub_query2():
-#     query = Query(
-#     [
-#         SubQuery(
-#             Query(
-#                 [
-#                     Projection("material"),
-#                     Aggregation(
-#                         "count", Query([Projection("*")], "Cycles"), name="cycles"
-#                     ),
-#                 ],
-#                 "Materials",
-#             ),
-#             name="material_and_count",
-#         ),
-#     ],
-#     "Tools",
-# )
-#     results= query.execute(context)
-#     print(results)
+    assert results == [
+        {"tool_name": "Tool 0"},
+        {"cycles": 26},
+        {"products": ["Material 0", "Material 1"]},
+        {
+            "material_and_count": [
+                {"material_name": "Material 0"},
+                {"cycles": 14},
+                {"material_name": "Material 1"},
+                {"cycles": 14},
+            ]
+        },
+        {"tool_name": "Tool 1"},
+        {"cycles": 31},
+        {"products": ["Material 1"]},
+        {"material_and_count": [{"material_name": "Material 1"}, {"cycles": 16}]},
+        {"tool_name": "Tool 2"},
+        {"cycles": 28},
+        {"products": ["Material 0", "Material 1", "Material 0"]},
+        {
+            "material_and_count": [
+                {"material_name": "Material 0"},
+                {"cycles": 20},
+                {"material_name": "Material 1"},
+                {"cycles": 7},
+                {"material_name": "Material 0"},
+                {"cycles": 0},
+            ]
+        },
+        {"tool_name": "Tool 3"},
+        {"cycles": 0},
+        {"products": ["Material 1", "Material 0"]},
+        {
+            "material_and_count": [
+                {"material_name": "Material 1"},
+                {"cycles": 0},
+                {"material_name": "Material 0"},
+                {"cycles": 0},
+            ]
+        },
+        {"tool_name": "Tool 4"},
+        {"cycles": 0},
+        {"products": []},
+        {"material_and_count": []},
+    ]

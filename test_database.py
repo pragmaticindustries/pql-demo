@@ -1,12 +1,17 @@
-import pytest
-
-from database_methods import migrate, delete_all_rows, get_all_entitys, PqlEntity
+from database_methods import (
+    migrate,
+    delete_all_rows_from_pql_entity,
+    get_all_entitys,
+    PqlEntity,
+    delete_all_rows_from_counter_saving,
+)
 from extract import SyncDatabase
 
 
 def run_database_processor(end_result):
     migrate()
-    delete_all_rows()
+    delete_all_rows_from_pql_entity()
+    delete_all_rows_from_counter_saving()
     db_sync: SyncDatabase = SyncDatabase(end_result)
     db_sync.synchronize_database()
     return get_all_entitys()

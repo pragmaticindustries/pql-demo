@@ -16,6 +16,7 @@ class Context:
         pass
 
 
+#
 class RootContext(Context):
     def __init__(self, entity_list_resolver, aggregate_functions):
         super().__init__()
@@ -237,16 +238,19 @@ class Query:
         self.group_by_clause = group_by_clause
 
     def execute(self, context: Context) -> List[Dict]:
+        ##wieso machen wir die Logic von InMemoryAssetRetriever nicht hier rein???
+        ##wei lhier würde es ja Sinn machen und hingehören wenn ich das Query excute soll es mit ja die Entitys zurück geben
         objects = context.list_entity(
             self.entity, self.where_clause, self.group_by_clause
         )
-
         results = []
         for o in objects:
             ctx = context.create_query_context(o)
-            single_result: dict = dict([(s.name, s.execute(ctx)) for s in self.selects])
-            results.append(single_result)
-
+            for s in self.selects:
+                if s.name == "*":
+                    results.append(s.execute(ctx))
+                else:
+                    results.append(dict([(s.name, s.execute(ctx))]))
         return results
 
 
